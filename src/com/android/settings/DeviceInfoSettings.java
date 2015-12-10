@@ -101,13 +101,55 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
         return R.string.help_uri_about;
     }
 
+    private String androidCodename(final int api) {
+        switch (api) {
+            case 1:
+            case 2:
+                return "Base";
+            case 3:
+                return "Cupcake";
+            case 4:
+                return "Donut";
+            case 5:
+            case 6:
+            case 7:
+                return "Eclair";
+            case 8:
+                return "Froyo";
+            case 9:
+            case 10:
+                return "Gingerbread";
+            case 11:
+            case 12:
+            case 13:
+                return "Honeycomb";
+            case 14:
+            case 15:
+                return "IceCreamSandwich";
+            case 16:
+            case 17:
+            case 18:
+                return "JellyBean";
+            case 19:
+            case 20:
+                return "KitKat";
+            case 21:
+            case 22:
+                return "Lollipop";
+            case 23:
+                return "Marshmallow";
+            default:
+                return "unknown";
+        }
+    }
+
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
         addPreferencesFromResource(R.xml.device_info_settings);
 
-        setStringSummary(KEY_FIRMWARE_VERSION, Build.VERSION.RELEASE);
+        setStringSummary(KEY_FIRMWARE_VERSION, Build.VERSION.RELEASE + " \"" + androidCodename(Build.VERSION.SDK_INT) + "\"");
         findPreference(KEY_FIRMWARE_VERSION).setEnabled(true);
         String patch = Build.VERSION.SECURITY_PATCH;
         if (!"".equals(patch)) {
