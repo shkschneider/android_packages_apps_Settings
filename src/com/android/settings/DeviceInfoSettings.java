@@ -81,6 +81,9 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
     private static final String PROPERTY_EQUIPMENT_ID = "ro.ril.fccid";
     private static final String KEY_DEVICE_FEEDBACK = "device_feedback";
     private static final String KEY_SAFETY_LEGAL = "safetylegal";
+    private static final String KEY_ROM = "rom";
+    private static final String PROPERTY_MOD_NAME = "ro.mod.name";
+    private static final String PROPERTY_MOD_VERSION = "ro.mod.version";
 
     static final int TAPS_TO_BE_A_DEVELOPER = 7;
 
@@ -121,6 +124,8 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
             getPreferenceScreen().removePreference(findPreference(KEY_SECURITY_PATCH));
 
         }
+        setValueTitle(KEY_ROM, PROPERTY_MOD_NAME);
+        setValueSummary(KEY_ROM, PROPERTY_MOD_VERSION);
         setValueSummary(KEY_BASEBAND_VERSION, "gsm.version.baseband");
         setStringSummary(KEY_DEVICE_MODEL, Build.MODEL + getMsvSuffix());
         setValueSummary(KEY_EQUIPMENT_ID, PROPERTY_EQUIPMENT_ID);
@@ -319,6 +324,28 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
         }
     }
 
+    private void setStringTitle(String preference, String value) {
+        try {
+            findPreference(preference).setTitle(value);
+        } catch (RuntimeException e) {
+            // No recovery
+            getPreferenceScreen().removePreference(findPreference(preference));
+        }
+    }
+
+    private void setValueTitle(String preference, String property) {
+        try {
+            final String string = SystemProperties.get(property, null);
+            if (TextUtils.isEmpty(string)) {
+                throw new RuntimeException("Property empty for title");
+            }
+            findPreference(preference).setTitle(string);
+        } catch (RuntimeException e) {
+            // No recovery
+            getPreferenceScreen().removePreference(findPreference(preference));
+        }
+    }
+
     private void setStringSummary(String preference, String value) {
         try {
             findPreference(preference).setSummary(value);
@@ -510,4 +537,3 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
         };
 
 }
-
