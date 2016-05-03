@@ -39,6 +39,8 @@ public class ShkMod extends AsyncTask<String, Void, String> {
     protected String doInBackground(final String... params) {
         try {
             final HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(URL).openConnection();
+            httpURLConnection.setConnectTimeout(1500);
+            httpURLConnection.setReadTimeout(3000);
             if (httpURLConnection.getResponseCode() == 200) {
                 final InputStream inputStream = httpURLConnection.getInputStream();
                 if (inputStream == null) return null;
