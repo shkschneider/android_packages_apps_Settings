@@ -164,7 +164,13 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
 
         }
         setValueTitle(KEY_ROM, PROPERTY_MOD_NAME);
-        setValueSummary(KEY_ROM, PROPERTY_MOD_VERSION);
+        try {
+            findPreference(KEY_ROM).setSummary(
+                SystemProperties.get(PROPERTY_MOD_VERSION, getResources().getString(R.string.device_info_default))
+                + " (" + Build.TYPE + ")");
+        } catch (RuntimeException e) {
+            setValueSummary(KEY_ROM, PROPERTY_MOD_VERSION);
+        }
         findPreference(KEY_ROM).setEnabled(true);
         setValueSummary(KEY_BASEBAND_VERSION, "gsm.version.baseband");
         // setStringSummary(KEY_DEVICE_MODEL, Build.MODEL + getMsvSuffix());
