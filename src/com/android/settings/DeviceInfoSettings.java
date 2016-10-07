@@ -82,7 +82,7 @@ public class DeviceInfoSettings extends SettingsPreferenceFragment implements In
     private static final String PROPERTY_MOD_NAME = "ro.mod.name";
     private static final String PROPERTY_MOD_VERSION = "ro.mod.version";
 
-    static final int TAPS_TO_BE_A_DEVELOPER = 7;
+    static final int TAPS_TO_BE_A_DEVELOPER = 5;
 
     long[] mHits = new long[3];
     int mDevHitCountdown;
