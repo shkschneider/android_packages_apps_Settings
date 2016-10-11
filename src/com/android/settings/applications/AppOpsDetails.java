@@ -66,6 +66,7 @@ public class AppOpsDetails extends InstrumentedFragment {
         CharSequence label = mPm.getApplicationLabel(pkgInfo.applicationInfo);
         Drawable icon = mPm.getApplicationIcon(pkgInfo.applicationInfo);
         InstalledAppDetails.setupAppSnippet(appSnippet, label, icon,
+                pkgInfo != null ? pkgInfo.packageName : null,
                 pkgInfo != null ? pkgInfo.versionName : null);
     }
 

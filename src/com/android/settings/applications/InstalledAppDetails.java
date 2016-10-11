@@ -443,6 +443,7 @@ public class InstalledAppDetails extends AppInfoBase
         final View appSnippet = mHeader.findViewById(R.id.app_snippet);
         mState.ensureIcon(mAppEntry);
         setupAppSnippet(appSnippet, mAppEntry.label, mAppEntry.icon,
+                pkgInfo != null ? pkgInfo.packageName : null,
                 pkgInfo != null ? pkgInfo.versionName : null);
     }
 
@@ -766,7 +767,7 @@ public class InstalledAppDetails extends AppInfoBase
     }
 
     public static void setupAppSnippet(View appSnippet, CharSequence label, Drawable icon,
-            CharSequence versionName) {
+        CharSequence packageName, CharSequence versionName) {
         LayoutInflater.from(appSnippet.getContext()).inflate(R.layout.widget_text_views,
                 (ViewGroup) appSnippet.findViewById(android.R.id.widget_frame));
 
@@ -778,11 +779,10 @@ public class InstalledAppDetails extends AppInfoBase
         // Version number of application
         TextView appVersion = (TextView) appSnippet.findViewById(R.id.widget_text1);
 
-        if (!TextUtils.isEmpty(versionName)) {
+        if (!TextUtils.isEmpty(packageName) && !TextUtils.isEmpty(versionName)) {
             appVersion.setSelected(true);
             appVersion.setVisibility(View.VISIBLE);
-            appVersion.setText(appSnippet.getContext().getString(R.string.version_text,
-                    String.valueOf(versionName)));
+            appVersion.setText(packageName + " " + String.valueOf(versionName));
         } else {
             appVersion.setVisibility(View.INVISIBLE);
         }
