@@ -16,6 +16,8 @@
 
 package com.android.settings;
 
+import static android.provider.Settings.Secure.LOCK_PATTERN_SIZE;
+
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -32,6 +34,7 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
+import android.provider.Settings;
 import android.security.KeyStore;
 import android.hardware.fingerprint.Fingerprint;
 import android.hardware.fingerprint.FingerprintManager;
@@ -488,15 +491,33 @@ public class ChooseLockGeneric extends SettingsActivity {
                 }
                 startActivityForResult(intent, CHOOSE_LOCK_REQUEST);
             } else if (quality == DevicePolicyManager.PASSWORD_QUALITY_SOMETHING) {
-                Intent intent;
-                if (mHasChallenge) {
-                    intent = getLockPatternIntent(context, mRequirePassword,
-                        mChallenge);
-                } else {
-                    intent = getLockPatternIntent(context, mRequirePassword,
-                        mUserPassword);
-                }
-                startActivityForResult(intent, CHOOSE_LOCK_REQUEST);
+                new AlertDialog.Builder(getActivity())
+                    .setTitle(getString(R.string.unlock_set_unlock_pattern_title))
+                    .setItems(new CharSequence[]{
+                            "3x3",
+                            "4x4",
+                            "5x5"
+                        }, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(final DialogInterface dialogInterface,
+                                                    final int i) {
+                                    Intent intent;
+                                    if (mHasChallenge) {
+                                        intent = getLockPatternIntent(context,
+                                            mRequirePassword, mChallenge);
+                                    } else {
+                                        intent = getLockPatternIntent(context,
+                                            mRequirePassword, mUserPassword);
+                                    }
+                                    Settings.Secure.putIntForUser(
+                                        getActivity().getContentResolver(),
+                                        Settings.Secure.LOCK_PATTERN_SIZE, (i + 3),
+                                        UserHandle.USER_CURRENT);
+                                    startActivityForResult(intent, CHOOSE_LOCK_REQUEST);
+                                }
+                            })
+                    .setCancelable(true)
+                    .create().show();
             } else if (quality == DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED) {
                 mChooseLockSettingsHelper.utils().clearLock(UserHandle.myUserId());
                 mChooseLockSettingsHelper.utils().setLockScreenDisabled(disabled,
@@ -504,6 +525,9 @@ public class ChooseLockGeneric extends SettingsActivity {
                 removeAllFingerprintTemplatesAndFinish();
                 getActivity().setResult(Activity.RESULT_OK);
             } else {
+                Settings.Secure.putIntForUser(getActivity().getContentResolver(),
+                        Settings.Secure.LOCK_PATTERN_SIZE, LockPatternUtils.PATTERN_SIZE_DEFAULT,
+                        UserHandle.USER_CURRENT);
                 removeAllFingerprintTemplatesAndFinish();
             }
         }

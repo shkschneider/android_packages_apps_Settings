@@ -345,8 +345,6 @@ public class CryptKeeper extends Activity implements TextView.OnEditorActionList
             | StatusBarManager.DISABLE_SEARCH
             | StatusBarManager.DISABLE_RECENT;
 
-    protected static final int MIN_LENGTH_BEFORE_REPORT = LockPatternUtils.MIN_LOCK_PATTERN_SIZE;
-
     /** @return whether or not this Activity was started for debugging the UI only. */
     private boolean isDebugView() {
         return getIntent().hasExtra(EXTRA_FORCE_VIEW);
@@ -718,8 +716,10 @@ public class CryptKeeper extends Activity implements TextView.OnEditorActionList
         @Override
         public void onPatternDetected(List<LockPatternView.Cell> pattern) {
             mLockPatternView.setEnabled(false);
-            if (pattern.size() >= MIN_LENGTH_BEFORE_REPORT) {
-                new DecryptTask().execute(LockPatternUtils.patternToString(pattern));
+            final byte lockPatternSize = mLockPatternView.getLockPatternSize();
+            if (pattern.size() >= (lockPatternSize + 1)) {
+                new DecryptTask().execute(LockPatternUtils.patternToString(pattern,
+                        lockPatternSize));
             } else {
                 // Allow user to make as many of these as they want.
                 fakeUnlockAttempt(mLockPatternView);

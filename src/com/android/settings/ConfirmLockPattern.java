@@ -30,6 +30,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.CountDownTimer;
 import android.os.SystemClock;
+import android.os.UserHandle;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.storage.StorageManager;
@@ -144,6 +145,8 @@ public class ConfirmLockPattern extends ConfirmDeviceCredentialBaseActivity {
             mLockPatternView.setTactileFeedbackEnabled(
                     mLockPatternUtils.isTactileFeedbackEnabled());
             mLockPatternView.setInStealthMode(!mLockPatternUtils.isVisiblePatternEnabled(
+                    mEffectiveUserId));
+            mLockPatternView.setLockPatternSize(mLockPatternUtils.getLockPatternSize(
                     mEffectiveUserId));
             mLockPatternView.setOnPatternListener(mConfirmExistingLockPatternListener);
             updateStage(Stage.NeedToUnlock);
@@ -457,7 +460,8 @@ public class ConfirmLockPattern extends ConfirmDeviceCredentialBaseActivity {
                                     intent.putExtra(ChooseLockSettingsHelper.EXTRA_KEY_TYPE,
                                                     StorageManager.CRYPT_TYPE_PATTERN);
                                     intent.putExtra(ChooseLockSettingsHelper.EXTRA_KEY_PASSWORD,
-                                                    LockPatternUtils.patternToString(pattern));
+                                                    mLockPatternUtils.patternToString(pattern,
+                                                            localEffectiveUserId));
                                 }
                                 mCredentialCheckResultTracker.setResult(matched, intent, timeoutMs,
                                         localEffectiveUserId);

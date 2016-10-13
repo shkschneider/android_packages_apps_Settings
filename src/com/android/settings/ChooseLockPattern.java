@@ -16,6 +16,8 @@
 
 package com.android.settings;
 
+import static android.provider.Settings.Secure.LOCK_PATTERN_SIZE;
+
 import com.android.internal.logging.MetricsLogger;
 import com.google.android.collect.Lists;
 import com.android.internal.widget.LinearLayoutWithDefaultTouchRecepient;
@@ -33,6 +35,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -148,16 +151,12 @@ public class ChooseLockPattern extends SettingsActivity {
         private TextView mFooterRightButton;
         protected List<LockPatternView.Cell> mChosenPattern = null;
 
+        private byte mPatternSize = LockPatternUtils.PATTERN_SIZE_DEFAULT;
+
         /**
          * The patten used during the help screen to show how to draw a pattern.
          */
-        private final List<LockPatternView.Cell> mAnimatePattern =
-                Collections.unmodifiableList(Lists.newArrayList(
-                        LockPatternView.Cell.of(0, 0),
-                        LockPatternView.Cell.of(0, 1),
-                        LockPatternView.Cell.of(1, 1),
-                        LockPatternView.Cell.of(2, 1)
-                ));
+        private List<LockPatternView.Cell> mAnimatePattern;
 
         @Override
         public void onActivityResult(int requestCode, int resultCode,
@@ -203,16 +202,18 @@ public class ChooseLockPattern extends SettingsActivity {
                 }
 
                 public void onPatternDetected(List<LockPatternView.Cell> pattern) {
+                    final byte minLockPatternSize = (byte) (mPatternSize + 1);
                     if (mUiStage == Stage.NeedToConfirm || mUiStage == Stage.ConfirmWrong) {
                         if (mChosenPattern == null) throw new IllegalStateException(
                                 "null chosen pattern in stage 'need to confirm");
-                        if (mChosenPattern.equals(pattern)) {
+                        if (LockPatternUtils.patternToString(mChosenPattern, mPatternSize)
+                                .equals(LockPatternUtils.patternToString(pattern, mPatternSize))) {
                             updateStage(Stage.ChoiceConfirmed);
                         } else {
                             updateStage(Stage.ConfirmWrong);
                         }
                     } else if (mUiStage == Stage.Introduction || mUiStage == Stage.ChoiceTooShort){
-                        if (pattern.size() < LockPatternUtils.MIN_LOCK_PATTERN_SIZE) {
+                        if (pattern.size() < minLockPatternSize) {
                             updateStage(Stage.ChoiceTooShort);
                         } else {
                             mChosenPattern = new ArrayList<LockPatternView.Cell>(pattern);
@@ -373,6 +374,22 @@ public class ChooseLockPattern extends SettingsActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
+            final int patternSize = Settings.Secure.getIntForUser(
+                    getContext().getContentResolver(),
+                    Settings.Secure.LOCK_PATTERN_SIZE, -1,
+                    UserHandle.USER_CURRENT);
+            if (patternSize > 0 && patternSize < 128) {
+                mPatternSize = (byte) patternSize;
+            } else {
+                mPatternSize = LockPatternUtils.PATTERN_SIZE_DEFAULT;
+            }
+            LockPatternView.Cell.updateSize(mPatternSize);
+            mAnimatePattern = Collections.unmodifiableList(Lists.newArrayList(
+                    LockPatternView.Cell.of(0, 0, mPatternSize),
+                    LockPatternView.Cell.of(0, 1, mPatternSize),
+                    LockPatternView.Cell.of(1, 1, mPatternSize),
+                    LockPatternView.Cell.of(2, 1, mPatternSize)
+            ));
             return inflater.inflate(R.layout.choose_lock_pattern, container, false);
         }
 
@@ -384,6 +401,8 @@ public class ChooseLockPattern extends SettingsActivity {
             mLockPatternView.setOnPatternListener(mChooseNewLockPatternListener);
             mLockPatternView.setTactileFeedbackEnabled(
                     mChooseLockSettingsHelper.utils().isTactileFeedbackEnabled());
+            mLockPatternView.setLockPatternUtils(mChooseLockSettingsHelper.utils());
+            mLockPatternView.setLockPatternSize(mPatternSize);
 
             mFooterText = (TextView) view.findViewById(R.id.footerText);
 
@@ -427,7 +446,8 @@ public class ChooseLockPattern extends SettingsActivity {
                 // restore from previous state
                 final String patternString = savedInstanceState.getString(KEY_PATTERN_CHOICE);
                 if (patternString != null) {
-                    mChosenPattern = LockPatternUtils.stringToPattern(patternString);
+                    mChosenPattern = LockPatternUtils.stringToPattern(patternString, mPatternSize);
+                    mLockPatternView.setPattern(DisplayMode.Correct, mChosenPattern);
                 }
 
                 if (mCurrentPattern == null) {
@@ -530,7 +550,7 @@ public class ChooseLockPattern extends SettingsActivity {
             outState.putInt(KEY_UI_STAGE, mUiStage.ordinal());
             if (mChosenPattern != null) {
                 outState.putString(KEY_PATTERN_CHOICE,
-                        LockPatternUtils.patternToString(mChosenPattern));
+                        LockPatternUtils.patternToString(mChosenPattern, mPatternSize));
             }
 
             if (mCurrentPattern != null) {
@@ -553,10 +573,9 @@ public class ChooseLockPattern extends SettingsActivity {
             // header text, footer text, visibility and
             // enabled state all known from the stage
             if (stage == Stage.ChoiceTooShort) {
-                mHeaderText.setText(
-                        getResources().getString(
-                                stage.headerMessage,
-                                LockPatternUtils.MIN_LOCK_PATTERN_SIZE));
+                final byte minLockPatternSize = (byte) (mPatternSize + 1);
+                mHeaderText.setText(getResources().getString(stage.headerMessage,
+                        minLockPatternSize));
             } else {
                 mHeaderText.setText(stage.headerMessage);
             }
@@ -645,7 +664,7 @@ public class ChooseLockPattern extends SettingsActivity {
             final boolean required = getActivity().getIntent().getBooleanExtra(
                     EncryptionInterstitial.EXTRA_REQUIRE_PASSWORD, true);
             mSaveAndFinishWorker.start(mChooseLockSettingsHelper.utils(), required,
-                    mHasChallenge, mChallenge, mChosenPattern, mCurrentPattern);
+                    mHasChallenge, mChallenge, mChosenPattern, mCurrentPattern, mPatternSize);
         }
 
         @Override
@@ -667,14 +686,17 @@ public class ChooseLockPattern extends SettingsActivity {
         private List<LockPatternView.Cell> mChosenPattern;
         private String mCurrentPattern;
         private boolean mLockVirgin;
+        private byte mPatternSize;
 
         public void start(LockPatternUtils utils, boolean credentialRequired,
                 boolean hasChallenge, long challenge,
-                List<LockPatternView.Cell> chosenPattern, String currentPattern) {
+                List<LockPatternView.Cell> chosenPattern, String currentPattern,
+                byte patternSize) {
             prepare(utils, credentialRequired, hasChallenge, challenge);
 
             mCurrentPattern = currentPattern;
             mChosenPattern = chosenPattern;
+            mPatternSize = patternSize;
 
             mLockVirgin = !mUtils.isPatternEverChosen(UserHandle.myUserId());
 
@@ -685,6 +707,7 @@ public class ChooseLockPattern extends SettingsActivity {
         protected Intent saveAndVerifyInBackground() {
             Intent result = null;
             final int userId = UserHandle.myUserId();
+            mUtils.setLockPatternSize(mPatternSize, userId);
             mUtils.saveLockPattern(mChosenPattern, mCurrentPattern, userId);
 
             if (mHasChallenge) {
